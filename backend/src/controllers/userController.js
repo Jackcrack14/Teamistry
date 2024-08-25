@@ -3,6 +3,7 @@ import Organization from "../models/organizationModel";
 import bcrypt from "bcryptjs";
 import generateToken from "../config/token";
 
+const salt = bcrypt.genSalt(10);
 const registerUser = async (req, res) => {
   try {
     const { name, email, password, organizationName } = req.body;
@@ -21,42 +22,42 @@ const registerUser = async (req, res) => {
       res.status(400);
       throw new Error("User already exist! Please login!!");
     }
-    const salt = bcrypt.genSalt(10);
-    const hashedPassword = bcrypt.hash(password, salt);
-    let organization = Organization.findOne({ organizationName }, "_id");
+    const hashedPassword = await bcrypt.hash(password, salt);
+    let organization = await Organization.findOne({ organizationName }, "_id");
     let role = "member";
     if (!organization) {
       const newOrganization = await new Organization({
         name: organizationName,
       });
 
-      newOrganization.save().then((item) => {
+      await newOrganization.save().then((item) => {
         organization = item._id;
       });
       role = "admin";
-    }
 
-    const user = new User({
-      name: name,
-      email: email,
-      password: hashedPassword,
-      organization: organization,
-      role: role,
-    });
-
-    await user.save();
-
-    if (user) {
-      res.status(201).json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        password: user.password,
-        token: generateToken(user._id),
+      const user = await new User({
+        name: name,
+        email: email,
+        password: hashedPassword,
+        organization: organization,
+        role: role,
       });
+
+      await user.save();
+
+      if (user) {
+        res.status(201).json({
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          password: user.password,
+          token: generateToken(user._id),
+        });
+      }
     }
   } catch (error) {
     console.log(error.message);
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -94,6 +95,7 @@ const handleLogin = async (req, res) => {
     }
   } catch (error) {
     console.log(error.message);
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -101,7 +103,7 @@ const editUser = async (req, res) => {
   try {
     const { id } = req.body;
 
-    const user = User.findOne({ _id: id });
+    const user = await User.findOne({ _id: id });
 
     if (!user) {
       res.status(400);
@@ -109,7 +111,33 @@ const editUser = async (req, res) => {
     }
   } catch (error) {
     console.log(error.message);
+    res.status(500).json({ message: error.message });
   }
 };
 
-module.exports = { registerUser, handleLogin, editUser };
+const addUser = async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.user.id);
+    if (!currentUser) {
+      res.status(400);
+      throw new Error("Invalid User! Please check your credentials");
+    } else if (currentUser.role !== "admin") {
+      res.status(401);
+      throw new Error("Unauthorized User! Please contact Admin!!");
+    }
+    const { name, email, password, role } = req.body;
+    const hashedPassword = await bcrypt.hash(password, salt);
+    const newUser = await new User({
+      name,
+      email,
+      password: hashedPassword,
+      role,
+      organization: currentUser.organization,
+    });
+    await newUser.save();
+  } catch (error) {
+    console.log(error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
+module.exports = { registerUser, handleLogin, editUser, addUser };

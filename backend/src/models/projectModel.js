@@ -17,6 +17,11 @@ const projectSchema = new Schema({
     ref: "User",
     required: true,
   },
+  organization: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Organization",
+    required: true,
+  },
   users: [
     {
       type: mongoose.Schema.Types.ObjectId,
