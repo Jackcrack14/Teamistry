@@ -117,7 +117,7 @@ const editUser = async (req, res) => {
 
 const addUser = async (req, res) => {
   try {
-    const currentUser = await User.findById(req.user.id);
+    const currentUser = await User.findById(req?.user._id);
     if (!currentUser) {
       res.status(400);
       throw new Error("Invalid User! Please check your credentials");

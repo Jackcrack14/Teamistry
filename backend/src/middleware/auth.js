@@ -45,9 +45,20 @@ const checkIsMember = async (req, res, next) => {
   }
   next();
 };
+
+const checkIsAdminOrManager = async (req, res, next) => {
+  const { role } = req.user.role;
+  if (role !== "project_manager" || role !== "admin") {
+    return res
+      .status(403)
+      .json({ message: "Access denied:  Role is not authorized" });
+  }
+  next();
+};
 module.exports = {
   handleAuthorization,
   checkIsAdmin,
   checkIsMember,
   checkIsProjectManager,
+  checkIsAdminOrManager,
 };

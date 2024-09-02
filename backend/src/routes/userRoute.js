@@ -10,3 +10,5 @@ const router = express.Router();
 router.route("/register").post(registerUser);
 router.route("/login").post(handleLogin);
 router.route("/users").post(checkIsAdmin, addUser);
+
+module.exports = router;

@@ -42,23 +42,35 @@ const addProject = async (req, res) => {
 
 const deleteProject = async (req, res) => {
   try {
-    const project = req.body;
-    const organizationId = req.user.organization;
+    const projectId = req.params.id;
+    const organizationId = req.user?.organization;
 
-    if (project?.organization !== organizationId) {
-      res.status(401);
-      throw new Error("You are not authorized to delete the project!!");
+    const project = await Project.findById(projectId);
+
+    if (!project) {
+      return res.status(404).json({ error: "Project not found" });
     }
-    const findProject = await Project.findOne({
-      title: project.title,
-      organization: project.organization,
-    });
-    if (findProject) {
-      const deleteProject = await Project.deleteOne({ _id: findProject?._id });
-      console.log("The project deleted is ", deleteProject);
+    if (project.organization.toString() !== organizationId) {
+      return res
+        .status(403)
+        .json({ error: "You are not authorized to delete this project" });
     }
+
+    const result = await Project.deleteOne({ _id: projectId });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: "Project could not be deleted" });
+    }
+
+    return res.status(200).json({ message: "Project successfully deleted" });
   } catch (error) {
-    throw new Error(error.message);
+    // Error logging
+    console.error("Error deleting project:", error.message);
+
+    // Respond with an error status and message
+    return res
+      .status(500)
+      .json({ error: "An error occurred while deleting the project" });
   }
 };
 
