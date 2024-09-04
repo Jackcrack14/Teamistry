@@ -65,4 +65,32 @@ const deleteTask = async (req, res) => {
   }
 };
 
-module.exports = { addTask, deleteTask };
+const editTask = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const role = req.user.role;
+    const userId = req.user._id;
+    const task = await Task.findById(id);
+    const new_task = req.body;
+    if (!task) {
+      return res.status(404).json({ error: "There is no such task" });
+    }
+    if (
+      role !== "admin" &&
+      role !== "project_manager" &&
+      userId.toString() !== task.assignedTo.toString()
+    ) {
+      return res
+        .status(403)
+        .json({ error: "You are not authorized to edit the task" });
+    }
+
+    const updatedTask = await Task.findByIdAndUpdate(id, { ...new_task });
+
+    return res.status(200).json(updatedTask);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+module.exports = { addTask, deleteTask, editTask };
